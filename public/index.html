@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Continuum MVP</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="layout">
+      <section class="column">
+        <h1>Continuum</h1>
+        <p class="subhead">One live channel. AI-managed thread memory.</p>
+
+        <form id="composer" class="card">
+          <label>
+            Name
+            <input id="author" maxlength="40" placeholder="display name" required />
+          </label>
+          <label>
+            Message
+            <textarea
+              id="content"
+              rows="4"
+              maxlength="2000"
+              placeholder="post to the global firehose"
+              required
+            ></textarea>
+          </label>
+          <button type="submit">Send</button>
+          <p id="composer-status" class="status"></p>
+        </form>
+
+        <section class="card">
+          <h2>Live Firehose</h2>
+          <ul id="messages" class="list"></ul>
+        </section>
+      </section>
+
+      <section class="column">
+        <section class="card">
+          <h2>Threads</h2>
+          <ul id="threads" class="list"></ul>
+        </section>
+
+        <section class="card">
+          <h2>Thread Detail</h2>
+          <div id="thread-detail" class="detail muted">Select a thread.</div>
+        </section>
+
+        <section class="card">
+          <h2>Archived Search</h2>
+          <form id="search-form">
+            <input id="search-input" placeholder="search archived threads" />
+            <button type="submit">Search</button>
+          </form>
+          <ul id="search-results" class="list"></ul>
+        </section>
+      </section>
+    </main>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
+

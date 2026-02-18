@@ -1,173 +1,99 @@
 # Continuum
 
-**Real-time conversation with memory.**
+Real-time conversation with memory.
 
-Continuum is a single-channel chat system that automatically organizes conversation into structured, persistent forum threads.
+Continuum keeps a single global chat stream, then continuously organizes it
+into persistent threads in the background.
 
-Talk naturally.
-Structure emerges automatically.
-Nothing gets lost.
+## MVP implemented
 
----
+- Single global live firehose (`messages` table + live UI)
+- Async thread assignment worker (messages appear immediately as unassigned)
+- AI-based assignment to active/cooling threads via OpenAI
+- Automatic thread creation when no active match exists
+- Lifecycle transitions:
+  - `active -> cooling` after 30 minutes idle
+  - `cooling -> archived` after 72 hours idle
+- Archived topic revival behavior:
+  - New topic creates a new thread
+  - Old archived thread is marked `superseded`
+  - Old thread stores `continued_in_thread_id`
+  - New thread stores `revives_thread_id`
+- Duplicate merge behavior:
+  - Only active/cooling threads are merge candidates
+  - Source thread becomes `superseded` with `merged_into_thread_id`
+- Archived/superseded thread search using PostgreSQL full-text search
+- Barebones UI:
+  - Global message feed
+  - Thread list
+  - Thread detail with link relationships
+  - Archived search
+- WebSocket updates for message/thread state changes
 
-## The Problem
+## Stack
 
-Modern chat platforms optimize for immediacy, not memory.
+- Node.js + TypeScript
+- Express (API + static UI)
+- WebSocket (`ws`)
+- PostgreSQL (`pg`, plain SQL)
+- OpenAI API (`gpt-4.1-mini` default)
 
-Over time, communities suffer from:
+## Prerequisites
 
-* Repeated questions
-* Fragmented discussions
-* Channel sprawl
-* Lost institutional knowledge
-* Manual moderation overhead
+- Node.js 20+
+- npm
+- PostgreSQL running locally
 
-Forums solve structure but sacrifice spontaneity.
+## Environment
 
-Continuum combines both.
+Set env vars in `.env` (optional defaults shown):
 
----
+```bash
+PORT=3000
+DATABASE_URL=postgres://localhost/continuum
+OPENAI_API_KEY=
+OPENAI_MODEL=gpt-4.1-mini
+ACTIVE_TO_COOLING_MINUTES=30
+COOLING_TO_ARCHIVED_HOURS=72
+ASSIGNMENT_POLL_MS=1500
+MERGE_POLL_MS=45000
+MAX_ACTIVE_THREAD_CANDIDATES=15
+MAX_ARCHIVED_THREAD_CANDIDATES=20
+```
 
-## The Model
+If `OPENAI_API_KEY` is unset, the worker falls back to heuristic matching.
 
-Continuum enforces a simple rule:
+## Run
 
-> There is only one channel.
+```bash
+npm install
+npm run db:migrate
+npm run dev
+```
 
-All conversation happens in a single live stream.
+Open <http://localhost:3000>.
 
-An AI system continuously:
+## Build
 
-* Detects topic clusters
-* Groups related messages
-* Merges duplicate discussions
-* Tracks conversational lifecycles
+```bash
+npm run check
+npm run build
+npm start
+```
 
-When activity around a topic slows, the conversation:
+## API surface
 
-* Transitions into a persistent forum thread
-* Becomes searchable and readable as structured knowledge
-* Can be reopened if discussion resumes
+- `GET /health`
+- `GET /api/messages?limit=200`
+- `POST /api/messages`
+- `GET /api/threads?states=active,cooling,archived,superseded`
+- `GET /api/threads/:id`
+- `GET /api/search?q=<query>`
 
-Spontaneity first. Structure later.
+## Notes
 
----
+- The service runs assignment, lifecycle, and merge loops in-process.
+- This is intentionally a raw UI with a functional backend.
+- For local npm issues on this machine, commands can be run with:
+  `pkgx +node@20 npm <command>`.
 
-## How It Works
-
-### 1. Live Firehose
-
-All messages are appended to a single global channel.
-
-No rooms.
-No taxonomy debates.
-No “wrong channel” policing.
-
-### 2. Automatic Threading
-
-Continuum uses AI-based clustering to:
-
-* Detect topic boundaries
-* Assign messages to threads
-* Split or merge threads when needed
-* Identify duplicate discussions
-
-Threads are visible in real time as they emerge.
-
-### 3. Lifecycle State Machine
-
-Each thread moves through states:
-
-* **Active** – Ongoing conversation
-* **Cooling** – Activity decreasing
-* **Archived** – Converted to persistent forum post
-* **Reopened** – Reactivated due to new messages
-
-This allows chat to naturally evolve into documentation.
-
----
-
-## Design Principles
-
-* **One channel only**
-* **Emergent structure**
-* **AI as background organizer**
-* **Zero manual categorization for MVP**
-* **Chat is write-optimized**
-* **Forum is read-optimized**
-
-Continuum treats conversation as an append-only log and threads as materialized views.
-
----
-
-## MVP Scope
-
-Initial release includes:
-
-* Single global channel
-* AI-powered conversation clustering
-* Automatic thread creation
-* Duplicate thread merging
-* Automatic archival when activity declines
-* Thread reopening on new activity
-* Searchable persistent threads
-
-Not included in MVP:
-
-* Manual tagging
-* AI summaries for users
-* FAQ auto-generation
-* Custom channels
-
----
-
-## Why It’s Different
-
-| Platform  | Real-Time | Structure | Automatic Clustering | Persistent Memory |
-| --------- | --------- | --------- | -------------------- | ----------------- |
-| Discord   | Yes       | Manual    | No                   | Weak              |
-| Discourse | Limited   | Manual    | No                   | Strong            |
-| Continuum | Yes       | Automatic | Yes                  | Strong            |
-
-Continuum eliminates the need for users to decide where conversation belongs.
-
----
-
-## Ideal Use Cases
-
-* Open-source communities
-* Technical support communities
-* Early-stage startups
-* Research groups
-* DAO-style communities
-* Developer ecosystems
-
-Anywhere real-time chat produces knowledge that should not disappear.
-
----
-
-## Architecture (Conceptual)
-
-* Channel = append-only event log
-* AI indexer = clustering + lifecycle manager
-* Threads = structured, queryable views
-* State transitions driven by activity velocity + semantic coherence
-
----
-
-## Vision
-
-Continuum is not just chat.
-
-It is a self-organizing knowledge layer for communities.
-
-Conversation should not decay into entropy.
-It should accumulate into intelligence.
-
----
-
-## Status
-
-Early concept and prototype stage.
-
-Contributions and discussions welcome.
